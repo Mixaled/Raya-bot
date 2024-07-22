@@ -4,7 +4,7 @@ import requests
 import json
 import time
 import re
-from keys import api_gpt
+from keys import api_gpt, eleven_labs, voice_id
 
 MODEL = "openai/gpt-4o-mini-2024-07-18"
 
@@ -86,3 +86,26 @@ class ChatInteraction:
         response = comp[-1]
         #print(response)
         return response, self.global_chats
+
+
+#await client.send_file(chat, file, voice_note=True)  
+CHUNK_SIZE = 1024
+def create_voice(text):
+    url = f"https://api.elevenlabs.io/v1/text-to-speech/{voice_id}"
+
+    headers = {
+      "Accept": "audio/mpeg",
+      "Content-Type": "application/json",
+      "xi-api-key": eleven_labs
+    }
+
+    data = {
+      "text": text,
+      "voice_settings": {
+        "stability": 0.5,
+        "similarity_boost": 0.5
+      }
+    }
+
+    response = requests.post(url, json=data, headers=headers)
+    return response

@@ -11,6 +11,7 @@ from keys import session_name, api_id, api_hash
 
 with TelegramClient(session_name, api_id, api_hash, device_model='iPhone 13 Pro Max',system_version="4.16.30-vxhello") as client:
     client.send_message('me', 'Hi')
+    ban_list = ["Lunitarik", "Tywyrty", "suffereds0ul","leomatchbot"]
     global_chats = {}
     
     @client.on(events.NewMessage)
@@ -35,7 +36,7 @@ with TelegramClient(session_name, api_id, api_hash, device_model='iPhone 13 Pro 
             ))
             #await client.send_file('me', stickers.documents[0])
 
-            if len(event.message.message) >= 1 and sender_username != "Lunitarik" and sender_username != "Tywyrty" and sender_username != "suffereds0ul" and sender_username != "leomatchbot":
+            if len(event.message.message) >= 1 and sender_username not in ban_list:
                 print("I am here")
                 bot = ChatInteraction(sender_username, global_chats)
                 answer, global_chats = bot.response(message_text)
@@ -45,14 +46,20 @@ with TelegramClient(session_name, api_id, api_hash, device_model='iPhone 13 Pro 
                 if rand < 12:    
                     #TRY
                     #await time.sleep(int(len(answer)/5))
-                    await asyncio.sleep(int(len(answer) / 6))
+                    await asyncio.sleep(int(len(answer) / 4))
                     await event.reply(answer)
+                    #res = create_voice(answer)
+                    #with open('output.mp3', 'wb') as f:
+                    #    for chunk in res.iter_content(chunk_size=CHUNK_SIZE):
+                    #        if chunk:
+                    #            f.write(chunk)
+                    #await client.send_file(sender_username, 'output.mp3', voice_note=True) 
                     if rand <= 6:
                         await client.send_file(sender_username, stickers.documents[random.randrange(len(stickers.documents)-1)])
                 else:
                     #TRY
                     #await time.sleep(int(len(answer)/5))
-                    await asyncio.sleep(int(len(answer) / 6))
+                    await asyncio.sleep(int(len(answer) / 4))
                     await event.respond(answer)
                     if rand >= 24:
                         await client.send_file(sender_username, stickers.documents[random.randrange(len(stickers.documents)-1)])
