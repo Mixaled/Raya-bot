@@ -15,5 +15,7 @@
         "end": 10
     },
     "device_model": "iPhone 13 Pro Max",
-    "system_version": "4.16.30-vxhello"
+    "system_version": "4.16.30-vxhello",
+
+    "ignore_with_cooldown": true
 }
