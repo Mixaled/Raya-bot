@@ -50,12 +50,9 @@ async def hide_typing(client, sender_username):
 
 
 async def reply_template(client, answer, sender_username, stickers, reply_func):
-    prob_roll = random.randrange(settings["prob_to_send_skicker"]["from"])
-    #print("Prob roll:", prob_roll)
-    #print("Set roll:", settings["prob_to_send_skicker"]["first"])
-    
+    prob_roll = random.randrange(settings["prob_to_send_skicker"]["from"])  
+
     if prob_roll <= settings["prob_to_send_skicker"]["first"]:
-        #print("Sticker send")
         await asyncio.sleep(random.randrange(1, 3))
         await client.send_file(sender_username, stickers.documents[random.randrange(len(stickers.documents)-1)])
         await show_typing(client, sender_username)
@@ -69,7 +66,6 @@ async def reply_template(client, answer, sender_username, stickers, reply_func):
         await reply_func(answer)
         await hide_typing(client, sender_username) 
         if prob_roll <= settings["prob_to_send_skicker"]["last"]:
-            #print("Sticker send")
             await client.send_file(sender_username, stickers.documents[random.randrange(len(stickers.documents)-1)])
 
 
@@ -96,9 +92,10 @@ with TelegramClient(session_name, api_id, api_hash, device_model=settings["devic
     async def answer_to_user(event, user_id, sender_username, stickers, queue, message_text):
         global global_chats
         message_text = queue.pop_message_from_queue(user_id) + '\n' + message_text
+        print("Mess text:", message_text)
         await mark_as_read(client, event)
         await asyncio.sleep(int(len(message_text) / settings['to_read_divider']))
-        if len(event.message.message) >= 1 and sender_username not in ban_list:
+        if len(event.message.message) >= 1:
             bot = ChatInteraction(sender_username, global_chats)
             answer, global_chats = bot.response(message_text)
             logger.info(f"Answer: {answer}")
@@ -114,40 +111,29 @@ with TelegramClient(session_name, api_id, api_hash, device_model=settings["devic
         if event.is_private:
             sender = await event.get_sender()
             sender_username = sender.username or sender.first_name or "Unknown"
-            message_text = event.message.message
-            user_id = event.message.chat_id
-            logger.info(f"Received message from {sender_username}: {message_text}")
+            if sender_username not in ban_list:
+                message_text = event.message.message
+                user_id = event.message.chat_id
+                logger.info(f"Received message from {sender_username}: {message_text}")
 
-            sticker_sets = await client(GetAllStickersRequest(0))
-            sticker_set = sticker_sets.sets[0]
-            stickers = await client(GetStickerSetRequest(
-                stickerset=InputStickerSetID(
-                    id=sticker_set.id, access_hash=sticker_set.access_hash
-                ),
-                hash=0
-            ))
+                sticker_sets = await client(GetAllStickersRequest(0))
+                sticker_set = sticker_sets.sets[0]
+                stickers = await client(GetStickerSetRequest(
+                    stickerset=InputStickerSetID(
+                        id=sticker_set.id, access_hash=sticker_set.access_hash
+                    ),
+                    hash=0
+                ))
 
-            #if random.randrange(settings["prob_to_ignore"]["from"]) < settings["prob_to_ignore"]["prob"]:
-            if random.randrange(settings["prob_to_ignore"]["from"]) < settings["prob_to_ignore"]["prob"]:
-                print("the user is ignored and goes into cooldown")
-                queue.add_message_to_queue(user_id, message_text)
-                # ignore cooldown
-                asyncio.sleep(random.randrange(settings["ignore_range"]["start"], settings["ignore_range"]["end"]))
-                await answer_to_user(event, user_id, sender_username, stickers, queue,message_text)
-            else:
-                await answer_to_user(event, user_id, sender_username, stickers, queue,message_text)
-
-                    # sometimes send sticker before message
-                    #prob_roll = random.randrange(settings["prob_to_send_skicker"]["from"])
-                    #if prob_roll <= settings["prob_to_send_skicker"]["first"]:
-                    #    await client.send_file(sender_username, stickers.documents[random.randrange(len(stickers.documents)-1)])
-                    ## pretend that typing
-                    #await asyncio.sleep(int(len(answer) / settings['sleep_time_divider']))
-                    ## reply to message
-                    #await event.respond(answer)
-                    ## sometimes send sticker after message
-                    #if prob_roll >= settings["prob_to_send_skicker"]["from"] - settings["prob_to_send_skicker"]["last"]:
-                    #    await client.send_file(sender_username, stickers.documents[random.randrange(len(stickers.documents)-1)])
+                #if random.randrange(settings["prob_to_ignore"]["from"]) < settings["prob_to_ignore"]["prob"]:
+                if random.randrange(settings["prob_to_ignore"]["from"]) < settings["prob_to_ignore"]["prob"]:
+                    #print("the user is ignored and goes into cooldown")
+                    queue.add_message_to_queue(user_id, message_text)
+                    # ignore cooldown
+                    await asyncio.sleep(random.randrange(settings["ignore_range"]["start"], settings["ignore_range"]["end"]))
+                    await answer_to_user(event, user_id, sender_username, stickers, queue, message_text)
+                else:
+                    await answer_to_user(event, user_id, sender_username, stickers, queue,message_text)
 
     logger.info("Client is running...")
     client.run_until_disconnected()
