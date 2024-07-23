@@ -11,7 +11,7 @@ from keys import session_name, api_id, api_hash
 from logger import Logger
 from keys import ban_list
 import json
-from message_queue import user_queue
+from queues import user_queue
 from datetime import datetime
 
 # get logger and settings
