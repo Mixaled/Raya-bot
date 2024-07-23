@@ -49,7 +49,7 @@ async def hide_typing(client, sender_username):
         ))  
 
 
-async def reply_template(client, answer, sender_username, stickers, type_of):
+async def reply_template(client, answer, sender_username, stickers, reply_func):
     prob_roll = random.randrange(settings["prob_to_send_skicker"]["from"])
     #print("Prob roll:", prob_roll)
     #print("Set roll:", settings["prob_to_send_skicker"]["first"])
@@ -60,13 +60,13 @@ async def reply_template(client, answer, sender_username, stickers, type_of):
         await client.send_file(sender_username, stickers.documents[random.randrange(len(stickers.documents)-1)])
         await show_typing(client, sender_username)
         await asyncio.sleep(int(len(answer) / settings['sleep_time_divider']))
-        await type_of(answer)
+        await reply_func(answer)
         await hide_typing(client, sender_username)    
     else:
         
         await show_typing(client, sender_username)
         await asyncio.sleep(int(len(answer) / settings['sleep_time_divider']))
-        await type_of(answer)
+        await reply_func(answer)
         await hide_typing(client, sender_username) 
         if prob_roll <= settings["prob_to_send_skicker"]["last"]:
             #print("Sticker send")
