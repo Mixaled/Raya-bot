@@ -19,7 +19,7 @@ with open("settings.json") as file:
 queue = message_queue()
 
 
-with TelegramClient(session_name, api_id, api_hash, device_model='iPhone 13 Pro Max',system_version="4.16.30-vxhello") as client:
+with TelegramClient(session_name, api_id, api_hash, device_model=settings["device_model"],system_version=settings["system_version"]) as client:
     client.send_message('me', 'Hi')
     global_chats = {}
     

@@ -11,5 +11,7 @@
     "prob_to_ignore": {
         "prob": 10,
         "from": 100
-    }
+    },
+    "device_model": "iPhone 13 Pro Max",
+    "system_version": "4.16.30-vxhello"
 }
