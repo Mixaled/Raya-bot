@@ -1,8 +1,7 @@
 import logging
 import os
 import datetime
-import time
-
+import json
 
 class SingletonType(type):
     _instances = {}
@@ -12,7 +11,6 @@ class SingletonType(type):
             cls._instances[cls] = super(SingletonType, cls).__call__(*args, **kwargs)
         return cls._instances[cls]
 
-# python 3 style
 class Logger(object, metaclass=SingletonType):
     _logger = None
 
@@ -26,12 +24,11 @@ class Logger(object, metaclass=SingletonType):
 
         if not os.path.isdir(dirname):
             os.mkdir(dirname)
-        fileHandler = logging.FileHandler(dirname + "/log_" + now.strftime("%Y-%m-%d")+".log")
+        fileHandler = logging.FileHandler(dirname + "/log_" + now.strftime("%Y-%m-%d") + ".log", encoding='utf-8')
 
         streamHandler = logging.StreamHandler()
-
-        fileHandler.setFormatter(formatter)
         streamHandler.setFormatter(formatter)
+        fileHandler.setFormatter(formatter)
 
         self._logger.addHandler(fileHandler)
         self._logger.addHandler(streamHandler)

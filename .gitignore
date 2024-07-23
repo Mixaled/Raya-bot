@@ -1,3 +1,7 @@
 keys.py
 name.session
+src/log
+src/__pycache__
+name.session-journal
+user_info.json
 *venv*/
