@@ -1,0 +1,17 @@
+{
+    "prob_to_send_skicker": {
+        "first": 15,
+        "last": 15,
+        "from": 100
+    },
+
+    "sleep_time_divider": 4,
+    "to_read_divider": 5,
+
+    "prob_to_ignore": {
+        "prob": 10,
+        "from": 100
+    },
+    "device_model": "iPhone 13 Pro Max",
+    "system_version": "4.16.30-vxhello"
+}
