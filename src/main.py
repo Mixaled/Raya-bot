@@ -130,8 +130,9 @@ with TelegramClient(session_name, api_id, api_hash, device_model=settings["devic
                     #print("the user is ignored and goes into cooldown")
                     queue.add_message_to_queue(user_id, message_text)
                     # ignore cooldown
-                    await asyncio.sleep(random.randrange(settings["ignore_range"]["start"], settings["ignore_range"]["end"]))
-                    await answer_to_user(event, user_id, sender_username, stickers, queue, message_text)
+                    if settings["ignore_with_cooldown"]:
+                        await asyncio.sleep(random.randrange(settings["ignore_range"]["start"], settings["ignore_range"]["end"]))
+                        await answer_to_user(event, user_id, sender_username, stickers, queue, "")
                 else:
                     await answer_to_user(event, user_id, sender_username, stickers, queue,message_text)
 
