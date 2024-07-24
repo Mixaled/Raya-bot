@@ -46,7 +46,7 @@ def completion(messages, api_key=api_gpt, proxy=''):
             logger.info(f"completion_text: {completion_text}")
         except (KeyError, IndexError):
             raise Exception(f"Unexpected response structure: {response.text}")
-        messages.append({'role': 'assistant', 'content': completion_text})
+
         return messages
     elif response.status_code == 500 or response.status_code == 429:
         raise Exception(f"Error: {response.status_code}, {response.text}")
@@ -64,24 +64,27 @@ def replace_weird_symbols(text):
     return text
 
 class ChatInteraction:
-    def __init__(self, user_name, global_chats):
-        self.user_name = user_name
+    def __init__(self, global_chats: list):
         self.global_chats = global_chats
-        messages = [
-            {
-                "role": "system", 
-                "content": general_prompt
-            },
-        ]
-        if self.user_name not in self.global_chats:
-            global_chats[user_name] = messages
 
-    def response(self, user_input):
+    def response(self, user_name: str, global_chats: list, user_input: str):
+        if self.user_name not in self.global_chats:
+            global_chats[user_name] = [
+                {
+                    "role": "system", 
+                    "content": general_prompt
+                },
+        ]
+        # add memory about dialog
+        # cause of re-initialisation it wasn't here, 
+        # even though idea was right
+        self.global_chats[self.user_name].append({"role": "user", "content": user_input})
         self.global_chats[self.user_name].append({"role": "user", "content": user_input})
         comp = completion(self.global_chats[self.user_name])
         logger.info(f"COMP: {self.global_chats[self.user_name]}")
         response = comp[-1]
-        #print(response)
+        self.global_chats[self.user_name].append({'role': 'assistant', 'content': response})
+        
         return response, self.global_chats
 
 

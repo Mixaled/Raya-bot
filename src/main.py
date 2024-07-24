@@ -92,18 +92,15 @@ with TelegramClient(session_name, api_id, api_hash, device_model=settings["devic
     async def answer_to_user(event, user_id, sender_username, stickers, queue, message_text):
         global global_chats
         message_text = queue.pop_message_from_queue(user_id) + '\n' + message_text
-        print("Mess text:", message_text)
+        logger.info(f"Mess text: {message_text}")
         await mark_as_read(client, event)
         await asyncio.sleep(int(len(message_text) / settings['to_read_divider']))
         if len(event.message.message) >= 1:
-            bot = ChatInteraction(sender_username, global_chats)
-            answer, global_chats = bot.response(message_text)
-            logger.info(f"Answer: {answer}")
             event_happen = random_weights([simple_reply, simple_respond], [50, 50])
             if event_happen:
                 await event_happen(client, event, answer['content'], sender_username, stickers)
             else:
-                print("Some None occurs")
+                logger.warning("Some None occurs")
 
     @client.on(events.NewMessage)
     async def handler(event):
@@ -124,10 +121,7 @@ with TelegramClient(session_name, api_id, api_hash, device_model=settings["devic
                     ),
                     hash=0
                 ))
-
-                #if random.randrange(settings["prob_to_ignore"]["from"]) < settings["prob_to_ignore"]["prob"]:
                 if random.randrange(settings["prob_to_ignore"]["from"]) < settings["prob_to_ignore"]["prob"]:
-                    #print("the user is ignored and goes into cooldown")
                     queue.add_message_to_queue(user_id, message_text)
                     # ignore cooldown
                     if settings["ignore_with_cooldown"]:
