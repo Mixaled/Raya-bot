@@ -106,7 +106,7 @@ class request_queue(metaclass=SingletonType):
     
     async def put_messages_to_history(self, user_id: int, user_name: str, user_message: str="", model_message: str="") -> bool:
         if user_message != "":
-            await self.sql.sql.execute("INSERT INTO chats_history(userId, senderName, messageText) VALUES(?, ?, ?)", (user_id, user_name, user_message))
+            await self.sql.sql.execute("INSERT INTO chats_history(userId, senderName, messageText) VALUES(?, ?, ?)", (user_id, "user", user_message))
         if model_message != "":  
             await self.sql.sql.execute("INSERT INTO chats_history(userId, senderName, messageText) VALUES(?, ?, ?)", (user_id, "assistant", model_message))
         await self.sql.sql.commit()
