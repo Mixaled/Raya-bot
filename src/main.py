@@ -1,5 +1,4 @@
 from telethon.sync import TelegramClient, events
-from chaty import *
 import asyncio
 import random
 from telethon.tl.functions.messages import GetAllStickersRequest
@@ -11,15 +10,15 @@ from keys import session_name, api_id, api_hash
 from logger import Logger
 from keys import ban_list
 import json
-from queues import user_queue
 from datetime import datetime
+from queues import request_queue, user_queue
 
 # get logger and settings
 logger = Logger().get_logger()
 with open("settings.json", "r") as file:
     settings = json.load(file)
 queue = user_queue()
-
+requests = request_queue()
 
 def random_weights(values, weights): 
     total = sum(weights)
@@ -83,28 +82,26 @@ async def mark_as_read(client, event):
         ))
 
 
-
-
 with TelegramClient(session_name, api_id, api_hash, device_model=settings["device_model"], system_version=settings["system_version"]) as client:
     client.send_message('me', 'Hi')
-    global_chats = {}
-
-    async def answer_to_user(event, user_id, sender_username, stickers, queue, message_text):
-        global global_chats
-        message_text = queue.pop_message_from_queue(user_id) + '\n' + message_text
-        logger.info(f"Mess text: {message_text}")
+    async def answer_to_user(event, user_id, sender_username, stickers, queue: user_queue, message_text):
         await mark_as_read(client, event)
+        if (datetime.now() - queue.get_last_message_time()).total_seconds() < settings["prompt_sleep_time"]:
+            return None
         await asyncio.sleep(int(len(message_text) / settings['to_read_divider']))
         if len(event.message.message) >= 1:
+            answer = requests.generate_responce(user_id, sender_username)
+            # probably overkill
+            if answer is None:
+                return None
             event_happen = random_weights([simple_reply, simple_respond], [50, 50])
             if event_happen:
-                await event_happen(client, event, answer['content'], sender_username, stickers)
+                await event_happen(client, event, answer, sender_username, stickers)
             else:
                 logger.warning("Some None occurs")
 
     @client.on(events.NewMessage)
     async def handler(event):
-        global global_chats
         if event.is_private:
             sender = await event.get_sender()
             sender_username = sender.username or sender.first_name or "Unknown"
@@ -113,6 +110,7 @@ with TelegramClient(session_name, api_id, api_hash, device_model=settings["devic
                 user_id = event.message.chat_id
                 logger.info(f"Received message from {sender_username}: {message_text}")
 
+                # bad that it is loadede every time
                 sticker_sets = await client(GetAllStickersRequest(0))
                 sticker_set = sticker_sets.sets[0]
                 stickers = await client(GetStickerSetRequest(
@@ -125,10 +123,10 @@ with TelegramClient(session_name, api_id, api_hash, device_model=settings["devic
                     queue.add_message_to_queue(user_id, message_text)
                     # ignore cooldown
                     if settings["ignore_with_cooldown"]:
-                        await asyncio.sleep(random.randrange(settings["ignore_range"]["start"], settings["ignore_range"]["end"]))
+                        await asyncio.sleep(random.randrange(settings["ignore_time_range"]["start"], settings["ignore_time_range"]["end"]))
                         await answer_to_user(event, user_id, sender_username, stickers, queue, "")
                 else:
-                    await answer_to_user(event, user_id, sender_username, stickers, queue,message_text)
+                    await answer_to_user(event, user_id, sender_username, stickers, queue, message_text)
 
     logger.info("Client is running...")
     client.run_until_disconnected()

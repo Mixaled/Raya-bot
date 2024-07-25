@@ -10,14 +10,14 @@
         "prob": 70,
         "from": 100
     },
-    "ignore_range": {
+    "ignore_time_range": {
         "start": 5,
-        "end": 10
+        "end": 60
     },
     "device_model": "iPhone 13 Pro Max",
     "system_version": "4.16.30-vxhello",
 
     "ignore_with_cooldown": true,
     "user_db_name": "user_info.db",
-    "prompt_sleep_time": 10
+    "prompt_sleep_time": 5
 }
