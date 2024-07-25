@@ -75,9 +75,6 @@ class ChatInteraction:
                     "content": general_prompt
                 },
         ]
-        # add memory about dialog
-        # cause of re-initialisation it wasn't here, 
-        # even though idea was right
         self.global_chats[self.user_name].append({"role": "user", "content": user_input})
         self.global_chats[self.user_name].append({"role": "user", "content": user_input})
         comp = completion(self.global_chats[self.user_name])

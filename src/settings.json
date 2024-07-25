@@ -18,5 +18,6 @@
     "system_version": "4.16.30-vxhello",
 
     "ignore_with_cooldown": true,
-    "user_db_name": "user_info.db"
+    "user_db_name": "user_info.db",
+    "prompt_sleep_time": 10
 }
