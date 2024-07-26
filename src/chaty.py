@@ -63,7 +63,7 @@ def replace_weird_symbols(text):
 
     return text
 
-def response(self, user_name: str, user_chat: list):
+def response(user_name: str, user_chat: list):
     if user_chat == []:
         logger.error(f"passed empty user chat for {user_name}")
 

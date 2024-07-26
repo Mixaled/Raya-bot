@@ -8,3 +8,4 @@ user_info.json
 log/*
 *.db
 tests*
+.vscode*

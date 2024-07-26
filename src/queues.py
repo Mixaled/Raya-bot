@@ -1,36 +1,58 @@
-import os, json
-from logger import Logger, SingletonType
-import sqlite3
-import aiosqlite, asyncio
-from chaty import response
+"""
+module with queues to communicate with model and user messages
+"""
+
+import os
+import json
 from asyncio import sleep
 from typing import Callable
 from datetime import datetime
+import asyncio, nest_asyncio
+import aiosqlite
+
+from logger import Logger, SingletonType
+from chaty import response
 
 logger = Logger().get_logger()
 
-with open("./settings.json", "r") as file:
+with open("./settings.json", "r", encoding="utf-8") as file:
     settings = json.load(file)
 
-
-def async_to_sync(awaitable: Callable):
+def simple_async_to_sync(awaitable: Callable):
     """
     func to run async functions from sync code
     """
     loop = asyncio.get_event_loop()
     return loop.run_until_complete(awaitable)
 
-# simple class to sequre sql connection to be closed
-class sql_connection():     
+def async_to_sync(future, as_task=True):
+    """
+    A better implementation of `asyncio.run`.
+
+    :param future: A future or task or call of an async method.
+    :param as_task: Forces the future to be scheduled as task (needed for e.g. aiohttp).
+    """
+    try:
+        loop = asyncio.get_running_loop()
+    except RuntimeError:  # no event loop running:
+        loop = asyncio.new_event_loop()
+        return loop.run_until_complete(loop.create_task(future))
+    else:
+        nest_asyncio.apply(loop)
+        return loop.run_until_complete(loop.create_task(future))
+
+
+class sql_connection():
+    """simple class to sequre sql connection to be closed"""     
     def __init__(self, db_name=settings['user_db_name']):
-        async_to_sync(self.connect(db_name=settings['user_db_name']))
+        self.sql = aiosqlite.Connection
+        async_to_sync(self.connect(db_name))
     
     async def connect(self, db_name=settings['user_db_name']):
-        self.sql = aiosqlite.Connection
         if not os.path.isfile(db_name):
             self.sql = await aiosqlite.connect(db_name)
             await self.sql.executescript(f"""CREATE TABLE user_data (
-                        messageId INTEGER PRIMARY KEY AUTO_INCREMENT,
+                        messageId INTEGER PRIMARY KEY,
                         userId INTEGER NOT NULL,
                         userMessage TEXT NOT NULL,
                         messageTimestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP
@@ -40,7 +62,7 @@ class sql_connection():
                         userTimer INTEGER DEFAULT {settings["prompt_sleep_time"]}
                     );
                     CREATE TABLE chats_history (
-                        messageId INTEGER PRIMARY KEY AUTO_INCREMENT,
+                        messageId INTEGER PRIMARY KEY,
                         userId INTEGER NOT NULL,
                         senderName VARCHAR(255) NOT NULL,
                         messageText TEXT NOT NULL,
@@ -58,13 +80,14 @@ class sql_connection():
         logger.info("sql connection closed")    
 
 
-class user_queue(metaclass=SingletonType): # TOTHINK: shell it be singleton? not shure 
+class user_queue(metaclass=SingletonType): # TOTHINK: shell it be singleton? not shure
     def __init__(self, db_name=settings['user_db_name']): 
-        async_to_sync(self.connect_sql(db_name=settings['user_db_name']))
+        async_to_sync(self.connect_sql(db_name))
 
     # init can't be async, so we need to connect each class
     async def connect_sql(self, db_name=settings['user_db_name']):
-        self.sql = sql_connection(db_name=settings['user_db_name'])
+        """connect sql method"""
+        self.sql = sql_connection(db_name)
 
     async def count(self, user_id: int) -> int:
         lines = await self.sql.sql.execute_fetchall(f"SELECT userId FROM user_data WHERE userId={user_id}")
@@ -84,14 +107,17 @@ class user_queue(metaclass=SingletonType): # TOTHINK: shell it be singleton? not
 
     async def get_last_message_time(self, user_id: int) -> datetime:
         timestamp = await self.sql.sql.execute_fetchall(f"SELECT userId, MAX(messageTimestamp) as lastTime FROM user_data WHERE userId={user_id} GROUP BY userId")
-        return datetime.strftime(timestamp, '%Y-%m-%d %H:%M:%S')
+        if len(timestamp) == 0:
+            return None
+        return datetime.strptime(timestamp[0][1], '%Y-%m-%d %H:%M:%S')
 
 class request_queue(metaclass=SingletonType):
-    def __init__(self, queue: user_queue = user_queue(), db_name=settings['user_db_name']):
-        async_to_sync(self.connect(queue, db_name))
+    """queue to add new user messages to messages pull to answer"""
+    def __init__(self, db_name=settings['user_db_name']):
+        async_to_sync(self.connect(db_name))
 
-    # init can't be async, so we need to connect each class
-    async def connect(self, queue: user_queue = user_queue(), db_name=settings['user_db_name']):
+    async def connect(self, db_name=settings['user_db_name']):
+        """init can't be async, so we need to connect each class"""
         self.user_queue = user_queue(db_name)
         self.sql = sql_connection(db_name)
         
@@ -113,7 +139,7 @@ class request_queue(metaclass=SingletonType):
         
     async def get_timer(self, user_id: int) -> int:
         timer = await self.sql.sql.execute_fetchall(f"SELECT userTimer FROM user_timers WHERE userId = {user_id}")
-        return timer[0][0]
+        return timer[0][1]
     
     async def set_value_timer(self, user_id: int, timer_value) -> bool:
         await self.sql.sql.execute("INSERT OR REPLACE INTO user_timers(userId, userTimer) VALUES(?, ?);", (user_id, timer_value))
@@ -136,8 +162,7 @@ class request_queue(metaclass=SingletonType):
         user_message = await self.user_queue.pop_message_from_queue(user_id)
         # add new user message to context
         self.put_messages_to_history(user_id, user_name, user_message=user_message)
-        answer = response(user_name, self.get_chat_history(user_id))
+        answer = response(user_name=user_name, user_chat=self.get_chat_history(user_id))
         # add new model message to context
         await self.put_messages_to_history(user_id, user_name, model_message=answer)
         return answer
-
