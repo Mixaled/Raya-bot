@@ -15,6 +15,9 @@ MODELS_LIST = ["cognitivecomputations/dolphin-llama-3-70b", "meta-llama/llama-3-
 logger = Logger().get_logger()
 
 
+with open("./settings.json", "r", encoding="utf-8") as file:
+    settings = json.load(file)
+
 # isn't used
 def split_sentences(response):
     if len(response) < 150 :
@@ -66,7 +69,8 @@ def replace_weird_symbols(text):
 def response(user_name: str, user_chat: list):
     if user_chat == []:
         logger.error(f"passed empty user chat for {user_name}")
-
+    if len(user_chat) > settings["context_size"]:
+        user_chat = user_chat[-settings["context_size"]:]
     comp = completion(user_chat)
     logger.info(f"COMP: {comp}")
     response = comp[-1]

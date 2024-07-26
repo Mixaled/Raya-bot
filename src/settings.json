@@ -19,5 +19,6 @@
 
     "ignore_with_cooldown": true,
     "user_db_name": "user_info.db",
-    "prompt_sleep_time": 5
+    "prompt_sleep_time": 5,
+    "context_size": 5
 }
