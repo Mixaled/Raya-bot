@@ -1,7 +1,9 @@
+"""
+singleton logger to use everywhere (don't use prints to log!!)
+"""
 import logging
 import os
 import datetime
-import json
 
 class SingletonType(type):
     _instances = {}
