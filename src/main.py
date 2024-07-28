@@ -85,10 +85,7 @@ async def mark_as_read(client, event):
 
 
 with TelegramClient(session_name, api_id, api_hash, device_model=settings["device_model"], system_version=settings["system_version"]) as client:
-    client.send_message('me', 'Hi')
-
-
-
+    client.send_message('me', f'Bot started at {datetime.now()}')
     async def answer_to_user(event, user_id, sender_username, stickers, queue: user_queue, message_text):
         await mark_as_read(client, event)
         last_message_time = await queue.get_last_message_time(user_id)
@@ -140,4 +137,6 @@ with TelegramClient(session_name, api_id, api_hash, device_model=settings["devic
                     await answer_to_user(event, user_id, sender_username, stickers, queue, message_text)
 
     logger.info("Client is running...")
+
+    
     client.run_until_disconnected()

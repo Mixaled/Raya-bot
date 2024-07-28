@@ -173,9 +173,7 @@ class request_queue(metaclass=SingletonType):
         #print("User message: ", user_message)
         # return None if a message is already processing
         if user_message is None:
-            return None
-        # get new message
-        
+            return None    
         # add new user message to the context
         await self.put_messages_to_history(user_id, user_name, user_message=user_message)
         chat_hist = await self.get_chat_history(user_id)
