@@ -17,6 +17,7 @@
     "device_model": "iPhone 13 Pro Max",
     "system_version": "4.16.30-vxhello",
 
+    "local": 1,
     "ignore_with_cooldown": true,
     "user_db_name": "user_info.db",
     "prompt_sleep_time": 5,
