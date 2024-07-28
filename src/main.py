@@ -12,6 +12,7 @@ from keys import ban_list
 import json
 from datetime import datetime
 from queues import request_queue, user_queue
+from chaty import completion_local
 
 # get logger and settings
 logger = Logger().get_logger()
@@ -124,17 +125,30 @@ with TelegramClient(session_name, api_id, api_hash, device_model=settings["devic
                     ),
                     hash=0
                 ))
-
-                if random.randrange(settings["prob_to_ignore"]["from"]) < settings["prob_to_ignore"]["prob"]:
-                    await queue.add_message_to_queue(user_id, message_text)
-                    # ignore cooldown
-                    if settings["ignore_with_cooldown"]:
-                        await asyncio.sleep(random.randrange(settings["ignore_time_range"]["start"], settings["ignore_time_range"]["end"]))
-                        print("I am here text:", message_text)
-                        await answer_to_user(event, user_id, sender_username, stickers, queue, "")
+                if settings["local"] == 1:
+                    print("local")
+                    initial_messages = [
+                        {"role": "system", "content": "You are Raya a girl in the internet chat with some strangers"},
+                        {"role": "user", "content": message_text}
+                    ]
+                    #print(completion_local(initial_messages))
+                    await mark_as_read(client,event)
+                    resp = completion_local(initial_messages)
+                    event_happen = random_weights([simple_reply, simple_respond], [50, 50])
+                    if event_happen:
+                        await event_happen(client, event, resp, sender_username, stickers)
                 else:
-                    print("MEssage text:", message_text)
-                    await answer_to_user(event, user_id, sender_username, stickers, queue, message_text)
+                    print("non local")
+                    if random.randrange(settings["prob_to_ignore"]["from"]) < settings["prob_to_ignore"]["prob"]:
+                        await queue.add_message_to_queue(user_id, message_text)
+                        # ignore cooldown
+                        if settings["ignore_with_cooldown"]:
+                            await asyncio.sleep(random.randrange(settings["ignore_time_range"]["start"], settings["ignore_time_range"]["end"]))
+                            #print("I am here text:", message_text)
+                            await answer_to_user(event, user_id, sender_username, stickers, queue, "")
+                    else:
+                        #print("MEssage text:", message_text)
+                        await answer_to_user(event, user_id, sender_username, stickers, queue, message_text)
 
     logger.info("Client is running...")
 
