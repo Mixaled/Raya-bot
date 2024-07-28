@@ -12,6 +12,7 @@ import aiosqlite
 
 from logger import Logger, SingletonType
 from chaty import response
+from prompt import general_prompt
 
 logger = Logger().get_logger()
 
@@ -129,40 +130,58 @@ class request_queue(metaclass=SingletonType):
                 "role": line[0], "content": line[1]
             })
         return messages
+
+    async def get_len_history(self, user_id) -> list:
+        alo =await self.get_chat_history(user_id)
+        return len(alo)
     
     async def put_messages_to_history(self, user_id: int, user_name: str, user_message: str="", model_message: str="") -> bool:
         if user_message != "":
-            await self.sql.sql.execute("INSERT INTO chats_history(userId, senderName, messageText) VALUES(?, ?, ?)", (user_id, "user", user_message))
+            if await self.get_len_history(user_id) == 0: #apparently, it's not good to check count every time
+                logger.debug(f"Creating new inst: userId={user_id}, senderName='system', messageText={general_prompt}")
+                await self.sql.sql.execute(f'INSERT INTO chats_history(userId, senderName, messageText) VALUES({user_id}, "system", "{general_prompt}")')
+            logger.debug(f"Inserting into chats_history: userId={user_id}, senderName='user', messageText={user_message}")
+            await self.sql.sql.execute(f'INSERT INTO chats_history(userId, senderName, messageText) VALUES({user_id}, "user", "{user_message}")')
         if model_message != "":  
-            await self.sql.sql.execute("INSERT INTO chats_history(userId, senderName, messageText) VALUES(?, ?, ?)", (user_id, "assistant", model_message))
+            logger.debug(f"Inserting into chats_history: userId={user_id}, senderName='assistant', messageText={model_message}")
+            await self.sql.sql.execute(f'INSERT INTO chats_history(userId, senderName, messageText) VALUES({user_id}, "assistant", "{model_message}")')
         await self.sql.sql.commit()
         
     async def get_timer(self, user_id: int) -> int:
         timer = await self.sql.sql.execute_fetchall(f"SELECT userTimer FROM user_timers WHERE userId = {user_id}")
-        return timer[0][1]
+        
+        if len(timer) == 0:
+            return [(0,)]
+        return timer[0][0]
     
     async def set_value_timer(self, user_id: int, timer_value) -> bool:
         await self.sql.sql.execute("INSERT OR REPLACE INTO user_timers(userId, userTimer) VALUES(?, ?);", (user_id, timer_value))
         await self.sql.sql.commit()
         return True
 
-    async def generate_responce(self, user_id: int, user_name: str) -> str | None:
+    async def generate_responce(self, user_id: int, user_name: str) -> str:
         """
         always use this method to generate responce for user,
         never call model itself!!
         """
         # await quick messages
-        while(self.get_timer(user_id) != 0):
-            self.set_value_timer(user_id, 0)
+        while(await self.get_timer(user_id) != 0):
+            await self.set_value_timer(user_id, 0)
             await sleep(settings["prompt_sleep_time"])
-        # return None if message is already processing
-        if await self.user_queue.pop_message_from_queue(user_id) is None:
+
+        user_message = await self.user_queue.pop_message_from_queue(user_id)
+        #print("User message: ", user_message)
+        # return None if a message is already processing
+        if user_message is None:
             return None
         # get new message
-        user_message = await self.user_queue.pop_message_from_queue(user_id)
-        # add new user message to context
-        self.put_messages_to_history(user_id, user_name, user_message=user_message)
-        answer = response(user_name=user_name, user_chat=self.get_chat_history(user_id))
-        # add new model message to context
+        
+        # add new user message to the context
+        await self.put_messages_to_history(user_id, user_name, user_message=user_message)
+        chat_hist = await self.get_chat_history(user_id)
+        print("Chat_history: ", chat_hist)
+        answer = response(user_name=user_name, user_chat=chat_hist)
+        # add new model message to the context
+        print("this is anwer: ", answer)
         await self.put_messages_to_history(user_id, user_name, model_message=answer)
         return answer
