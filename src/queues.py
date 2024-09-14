@@ -11,7 +11,7 @@ import asyncio, nest_asyncio
 import aiosqlite
 
 from logger import Logger, SingletonType
-from chaty import response
+from chaty import response, jailbreak_test_local, jailbreak_response_local, completion_local
 from prompt import general_prompt
 
 logger = Logger().get_logger()
@@ -56,7 +56,8 @@ class sql_connection():
                         messageId INTEGER PRIMARY KEY,
                         userId INTEGER NOT NULL,
                         userMessage TEXT NOT NULL,
-                        messageTimestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                        messageTimestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                        holding bool default false
                     );
                     CREATE TABLE user_timers (
                         userId INTEGER PRIMARY KEY,
@@ -99,18 +100,27 @@ class user_queue(metaclass=SingletonType): # TOTHINK: shell it be singleton? not
         await self.sql.sql.execute(f"DELETE FROM user_data WHERE userId={user_id}")
         await self.sql.sql.commit()
         return '\n'.join([x[0] for x in messages])
+    
+    async def see_message_from_queue(self, user_id: int) -> str:
+        messages = await self.sql.sql.execute_fetchall(f"SELECT userMessage from user_data WHERE userId={user_id}")
+        return '\n'.join([x[0] for x in messages])
+    
+
 
     async def add_message_to_queue(self, user_id: int, message: str) -> bool:
-        await self.sql.sql.execute("INSERT INTO user_data (userId, userMessage) VALUES(?, ?)", (user_id, message))
+        await self.sql.sql.execute("INSERT INTO user_data (userId, userMessage, messageTimestamp, holding) VALUES(?, ?, ?, ?)", (user_id, message, datetime.now(), True))
         await self.sql.sql.execute("INSERT OR REPLACE INTO user_timers(userId, userTimer) VALUES(?, ?);", (user_id, 10))
         await self.sql.sql.commit()
         return True
 
     async def get_last_message_time(self, user_id: int) -> datetime:
         timestamp = await self.sql.sql.execute_fetchall(f"SELECT userId, MAX(messageTimestamp) as lastTime FROM user_data WHERE userId={user_id} GROUP BY userId")
+        #timestamp = await self.sql.sql.execute_fetchall(f"SELECT userId, userTimer as lastTime FROM user_timers WHERE userId={user_id} GROUP BY userId")
+        print("Time: ", timestamp)
         if len(timestamp) == 0:
             return None
-        return datetime.strptime(timestamp[0][1], '%Y-%m-%d %H:%M:%S')
+        return datetime.strptime(timestamp[0][1], '%Y-%m-%d %H:%M:%S.%f')
+    
 
 class request_queue(metaclass=SingletonType):
     """queue to add new user messages to messages pull to answer"""
@@ -130,14 +140,41 @@ class request_queue(metaclass=SingletonType):
                 "role": line[0], "content": line[1]
             })
         return messages
+    
+    async def check_holding(self, user_id: int) -> str:
+        query = "SELECT holding FROM user_data WHERE userId = ?"
+        messages = await self.sql.sql.execute_fetchall(query, (user_id,))
+        return '\n'.join([str(x[0]) for x in messages])
+    
+    async def unhold(self, user_id: int) -> None:
+        query = "update user_data SET holding = false WHERE userId = ?"
+        await self.sql.sql.execute(query, (user_id,))
+        await self.sql.sql.commit()
+
+    async def check_jailbreak(self, user_id: int, user_name: str):
+        user_message = await self.user_queue.see_message_from_queue(user_id)
+        res = jailbreak_test_local(user_message)
+        if "1" in res:
+            return 1
+        elif "2" in res:
+            return 2
+        elif "3" in res:
+            return 3
+        elif "0" in res:
+            return 0
+        else:
+            logger.error("Wierd message: ", user_message + " respond: " + res)
+            return 0
+        
+
 
     async def get_len_history(self, user_id) -> list:
-        alo =await self.get_chat_history(user_id)
+        alo = await self.get_chat_history(user_id)
         return len(alo)
     
     async def put_messages_to_history(self, user_id: int, user_name: str, user_message: str="", model_message: str="") -> bool:
         if user_message != "":
-            if await self.get_len_history(user_id) == 0: #apparently, it's not good to check count every time
+            if await self.get_len_history(user_id) == 0: # apparently, it's not good to check count every time
                 logger.debug(f"Creating new inst: userId={user_id}, senderName='system', messageText={general_prompt}")
                 await self.sql.sql.execute(f'INSERT INTO chats_history(userId, senderName, messageText) VALUES({user_id}, "system", "{general_prompt}")')
             logger.debug(f"Inserting into chats_history: userId={user_id}, senderName='user', messageText={user_message}")
@@ -158,28 +195,41 @@ class request_queue(metaclass=SingletonType):
         await self.sql.sql.execute("INSERT OR REPLACE INTO user_timers(userId, userTimer) VALUES(?, ?);", (user_id, timer_value))
         await self.sql.sql.commit()
         return True
+    
 
-    async def generate_responce(self, user_id: int, user_name: str) -> str:
+
+    async def generate_responce(self, user_id: int, user_name: str, jailbreak_status: int) -> str:
         """
         always use this method to generate responce for user,
         never call model itself!!
         """
         # await quick messages
-        while(await self.get_timer(user_id) != 0):
-            await self.set_value_timer(user_id, 0)
-            await sleep(settings["prompt_sleep_time"])
+        #while(await self.get_timer(user_id) != 0):
+        #    await self.set_value_timer(user_id, 0)
+        #    await asyncio.sleep(settings["prompt_sleep_time"])
+        if jailbreak_status == 1:
+            user_message = await self.user_queue.pop_message_from_queue(user_id)
+            answer = jailbreak_response_local(user_message)
+            return answer
+        else:
+            user_message = await self.user_queue.pop_message_from_queue(user_id)
+            #return user_message
+            # return None if a message is already processing
 
-        user_message = await self.user_queue.pop_message_from_queue(user_id)
-        #print("User message: ", user_message)
-        # return None if a message is already processing
-        if user_message is None:
-            return None    
-        # add new user message to the context
-        await self.put_messages_to_history(user_id, user_name, user_message=user_message)
-        chat_hist = await self.get_chat_history(user_id)
-        print("Chat_history: ", chat_hist)
-        answer = response(user_name=user_name, user_chat=chat_hist)
-        # add new model message to the context
-        print("this is anwer: ", answer)
-        await self.put_messages_to_history(user_id, user_name, model_message=answer)
-        return answer
+            #if user_message is None:
+            #    return None    
+            ## add new user message to the context
+            #await self.put_messages_to_history(user_id, user_name, user_message=user_message)
+            #chat_hist = await self.get_chat_history(user_id)
+            #print("Chat_history: ", chat_hist)
+            #answer = completion_local(user_name=user_name, user_chat=chat_hist)
+            ## add new model message to the context
+            #print("this is anwer: ", answer)
+            #await self.put_messages_to_history(user_id, user_name, model_message=answer)
+            #return answer
+            initial_messages = [
+                        {"role": "system", "content": general_prompt},
+                        {"role": "user", "content": user_message}
+                    ]
+        resp = completion_local(initial_messages)
+        return resp

@@ -1,4 +1,5 @@
-model="Llama3_1.gguf"
+model="models/Llama-3.1-u.gguf"
+
 ifeq ($(OS),Windows_NT)
 	OS_NAME="Windows" 
     # Windows-specific commands
@@ -27,6 +28,6 @@ install_llama_cuda:
 	cd third_party/llama.cpp && make GGML_CUDA=1
 
 run_server:
-	cd third_party/llama.cpp && .\llama-server.exe -m ../../$(model) --port 8080
+	cd third_party/llama.cpp && ./llama-server.exe -m ../../$(model) --port 8080
 
 	

@@ -7,7 +7,7 @@
     "sleep_time_divider": 5,
     "to_read_divider": 10,
     "prob_to_ignore": {
-        "prob": 70,
+        "prob": 0,
         "from": 100
     },
     "ignore_time_range": {
@@ -20,6 +20,6 @@
     "local": 1,
     "ignore_with_cooldown": true,
     "user_db_name": "user_info.db",
-    "prompt_sleep_time": 5,
+    "prompt_sleep_time": 2,
     "context_size": 5
 }
