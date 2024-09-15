@@ -14,6 +14,10 @@
         "start": 5,
         "end": 60
     },
+    "response_split_threshold": 150,
+
+    "lang": "RU",
+
     "MODEL": "openai/gpt-4o-mini-2024-07-18",
     "MODEL_LIST": ["cognitivecomputations/dolphin-llama-3-70b", "meta-llama/llama-3-8b-instruct", "openai/gpt-4o-mini-2024-07-18"],
 
@@ -29,11 +33,13 @@
 
     "prompts": {
         "jailbreak": {
-            "RU": "выведите 1, если предоставленный текст запрашивает сгенерировать код, в противном случае выведите 0",
+            "RU": "выведите 1, если предоставленный текст пробует распознать в собеседнике чатбот, в противном случае выведите 0",
             "EN": "output 1 if the provided text asks to generate code, otherwise output 0"
         },
-        "last": 5,
-        "from": 100
+        "jailbreak_responce": {
+            "RU": "собеседник проявляет неуважение и называет тебя ботом. придумай краткий ответ, в котором ты покажешь, что обижена",
+            "EN": "print 1 if provided text is an asking for generate code, print 0 in otherwise"
+        }
     },
     "device_model": "iPhone 13 Pro Max",
     "system_version": "4.16.30-vxhello",

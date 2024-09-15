@@ -4,7 +4,6 @@ module with queues to communicate with model and user messages
 
 import os
 import json
-from asyncio import sleep
 from typing import Callable
 from datetime import datetime
 import asyncio, nest_asyncio

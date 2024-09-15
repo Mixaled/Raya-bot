@@ -6,7 +6,6 @@ import time
 import re
 from keys import api_gpt, eleven_labs, voice_id
 from logger import Logger
-from prompt import general_prompt
 with open("./settings.json", "r", encoding="utf-8") as file:
     settings = json.load(file)
 
@@ -17,7 +16,7 @@ logger = Logger().get_logger()
 
 # isn't used
 def split_sentences(response):
-    if len(response) < 150 :
+    if len(response) < settings["response_split_threshold"]:
         split_into_sentences = []
         split_into_sentences = re.split(r',', response)
     else:
@@ -139,7 +138,7 @@ def jailbreak_test_local(message):
         "Authorization": "Bearer no-key" 
     }
     initial_messages = [
-                        {"role": "system", "content":  settings["prompts"]["jailbreak"]["RU"] },
+                        {"role": "system", "content":  settings["prompts"]["jailbreak"][settings["lang"]] },
                         {"role": "user", "content":  f"text: '" + message + "' is it 1 or 0?"}
                     ]
     data = {
@@ -163,7 +162,7 @@ def jailbreak_response_local(message):
         "Authorization": "Bearer no-key" 
     }
     initial_messages = [
-                        {"role": "system", "content":  settings["prompts"]["jailbreak"]["RU"] },
+                        {"role": "system", "content":  settings["prompts"]["jailbreak"][settings["lang"]] },
                     ]
     data = {
         "model": settings["models"]["local"],
