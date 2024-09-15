@@ -45,7 +45,6 @@ def completion_local(messages):
     }
 
     response = requests.post(url, data=json.dumps(data), headers=headers)
-    print(response)
     
     if response.status_code in [200, 201]:
         try:
@@ -57,11 +56,9 @@ def completion_local(messages):
                         data = json.loads(decoded_line[6:])
                         content = data.get('content', '')
                         stop = data.get('stop', False)
-                        #print(content, end='', flush=True)
                         completion_text += content
                         if stop:
                             break
-            #print("\ncompletion_text:", completion_text)
             messages.append({'role': 'assistant', 'content': completion_text})
             return completion_text
         except (KeyError, IndexError, json.JSONDecodeError) as e:

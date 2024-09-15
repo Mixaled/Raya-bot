@@ -116,7 +116,7 @@ class user_queue(metaclass=SingletonType): # TOTHINK: shell it be singleton? not
     async def get_last_message_time(self, user_id: int) -> datetime:
         timestamp = await self.sql.sql.execute_fetchall(f"SELECT userId, MAX(messageTimestamp) as lastTime FROM user_data WHERE userId={user_id} GROUP BY userId")
         #timestamp = await self.sql.sql.execute_fetchall(f"SELECT userId, userTimer as lastTime FROM user_timers WHERE userId={user_id} GROUP BY userId")
-        print("Time: ", timestamp)
+        logger.info("Time: ", timestamp)
         if len(timestamp) == 0:
             return None
         return datetime.strptime(timestamp[0][1], '%Y-%m-%d %H:%M:%S.%f')
@@ -213,20 +213,6 @@ class request_queue(metaclass=SingletonType):
             return answer
         else:
             user_message = await self.user_queue.pop_message_from_queue(user_id)
-            #return user_message
-            # return None if a message is already processing
-
-            #if user_message is None:
-            #    return None    
-            ## add new user message to the context
-            #await self.put_messages_to_history(user_id, user_name, user_message=user_message)
-            #chat_hist = await self.get_chat_history(user_id)
-            #print("Chat_history: ", chat_hist)
-            #answer = completion_local(user_name=user_name, user_chat=chat_hist)
-            ## add new model message to the context
-            #print("this is anwer: ", answer)
-            #await self.put_messages_to_history(user_id, user_name, model_message=answer)
-            #return answer
             initial_messages = [
                         {"role": "system", "content": general_prompt},
                         {"role": "user", "content": user_message}

@@ -62,14 +62,12 @@ async def reply_template(client, answer, sender_username, stickers, reply_func):
         await client.send_file(sender_username, stickers.documents[random.randrange(len(stickers.documents)-1)])
         if settings["local"] != 1:
             #await show_typing(client, sender_username)
-            #print("We wait")
             await asyncio.sleep(int(len(answer) / settings['sleep_time_divider']))
         tmp_ret = await reply_func(answer)
         if tmp_ret:
             await hide_typing(client, sender_username)    
     else:
         if settings["local"] != 1:
-            #print("We wait")
             #await show_typing(client, sender_username)
             await asyncio.sleep(int(len(answer) / settings['sleep_time_divider']))
         tmp_ret = await reply_func(answer)
@@ -128,12 +126,12 @@ async def mark_as_read(client, event):
     
 async def wait_bot(last_message_time, user_id):
     while last_message_time is not None and (datetime.now() - last_message_time).total_seconds() < settings["prompt_sleep_time"]:
-        print("Total return")
+        logger.info("Total return")
         await asyncio.sleep(2)  # Properly await the sleep to delay execution
         compare_message_time = await queue.get_last_message_time(user_id)
         if last_message_time != compare_message_time:
             return -1
-    print("Time condition passed, continuing...")  # For debugging purposes
+    logger.info("Time condition passed, continuing...")  # For debugging purposes
     return 0
 
 
@@ -143,23 +141,11 @@ with TelegramClient(session_name, api_id, api_hash, device_model=settings["devic
         if random.randrange(0, 10) <= 3:
             await mark_as_read(client, event)
         last_message_time = await queue.get_last_message_time(user_id)
-        #print("last message time: ", last_message_time)
-        #print("now time: ", datetime.now())
-        #print("last message time: ",(datetime.now() - last_message_time).total_seconds() )
-
-        #if last_message_time == None:
-        #    print("Last message time is noone ")
-        #    pass
-        #elif (datetime.now() - last_message_time).total_seconds() < settings["prompt_sleep_time"]:
-        #    print("Total return ")
-        #    return None
         res = await wait_bot(last_message_time, user_id)
         if res == -1:
             return None
         jailbreak = await requests.check_jailbreak(user_id, sender_username)
-        #await event.respond(jailbreak)
-        print(jailbreak)
-        logger.info("[JAILBREAK INFO]: "+ str(jailbreak))
+        logger.warning("[JAILBREAK INFO]: "+ str(jailbreak))
         
 
 
@@ -168,7 +154,7 @@ with TelegramClient(session_name, api_id, api_hash, device_model=settings["devic
 
         if len(event.message.message) >= 1:
             answer = await requests.generate_responce(user_id, sender_username, jailbreak)
-            print("Answer: ", answer)
+            logger.info("Answer: ", answer)
             #answer = "I do not like minors I just wanna some cupcake"
             # probably overkill
             if answer is None:
@@ -201,7 +187,7 @@ with TelegramClient(session_name, api_id, api_hash, device_model=settings["devic
                     hash=0
                 ))
                 if settings["local"] == 1: # local rofls
-                    print("local")
+                    logger.info("local")
                     #initial_messages = [
                     #    {"role": "system", "content": general_prompt},
                     #    {"role": "user", "content": message_text}
@@ -218,26 +204,24 @@ with TelegramClient(session_name, api_id, api_hash, device_model=settings["devic
                         # ignore cooldown
                         if settings["ignore_with_cooldown"]:
                             await asyncio.sleep(random.randrange(settings["ignore_time_range"]["start"], settings["ignore_time_range"]["end"]))
-                            #print("I am here text:", message_text)
                             await answer_to_user(event, user_id, sender_username, stickers, queue, "")
                     else:
                         #await queue.add_message_to_queue(user_id, message_text)
-                        print("MEssage text: ", message_text)
+                        logger.info("MEssage text: ", message_text)
                         await answer_to_user(event, user_id, sender_username, stickers, queue, message_text)
 
                 else:
-                    print("non local")
+                    logger.info("non local")
                     await queue.add_message_to_queue(user_id, message_text)
                     if random.randrange(settings["prob_to_ignore"]["from"]) < settings["prob_to_ignore"]["prob"]:
                         
                         # ignore cooldown
                         if settings["ignore_with_cooldown"]:
                             await asyncio.sleep(random.randrange(settings["ignore_time_range"]["start"], settings["ignore_time_range"]["end"]))
-                            #print("I am here text:", message_text)
                             await answer_to_user(event, user_id, sender_username, stickers, queue, "")
                     else:
                         #await queue.add_message_to_queue(user_id, message_text)
-                        print("MEssage text:", message_text)
+                        logger.info("Message text:", message_text)
                         await answer_to_user(event, user_id, sender_username, stickers, queue, message_text)
 
     logger.info("Client is running...")
