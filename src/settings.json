@@ -14,6 +14,27 @@
         "start": 5,
         "end": 60
     },
+    "MODEL": "openai/gpt-4o-mini-2024-07-18",
+    "MODEL_LIST": ["cognitivecomputations/dolphin-llama-3-70b", "meta-llama/llama-3-8b-instruct", "openai/gpt-4o-mini-2024-07-18"],
+
+    "models": {
+        "openai": "openai/gpt-4o-mini-2024-07-18",
+        "local": "gpt-3.5-turbo"
+    },
+
+    "urls": {
+        "openai": "https://openrouter.ai/api/v1/chat/completions",
+        "local": "http://127.0.0.1:8080/v1/chat/completions"
+    },
+
+    "prompts": {
+        "jailbreak": {
+            "RU": "выведите 1, если предоставленный текст запрашивает сгенерировать код, в противном случае выведите 0",
+            "EN": "output 1 if the provided text asks to generate code, otherwise output 0"
+        },
+        "last": 5,
+        "from": 100
+    },
     "device_model": "iPhone 13 Pro Max",
     "system_version": "4.16.30-vxhello",
 

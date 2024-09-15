@@ -7,16 +7,13 @@ import re
 from keys import api_gpt, eleven_labs, voice_id
 from logger import Logger
 from prompt import general_prompt
+with open("./settings.json", "r", encoding="utf-8") as file:
+    settings = json.load(file)
 
-MODEL = "openai/gpt-4o-mini-2024-07-18"
-
-MODELS_LIST = ["cognitivecomputations/dolphin-llama-3-70b", "meta-llama/llama-3-8b-instruct", "openai/gpt-4o-mini-2024-07-18"]
+MODELS_LIST = settings["MODELS_LIST"]
 
 logger = Logger().get_logger()
 
-
-with open("./settings.json", "r", encoding="utf-8") as file:
-    settings = json.load(file)
 
 # isn't used
 def split_sentences(response):
@@ -31,14 +28,14 @@ def split_sentences(response):
 
 
 def completion(messages, api_key=api_gpt, proxy=''):
-    url = "https://openrouter.ai/api/v1/chat/completions"
+    url = settings['urls']['openai']
     if proxy is not None and proxy != '': url = proxy
     headers = {
         "Content-Type": "application/json",
         "Authorization": f"Bearer {api_key}"
     }
     data = {
-        "model": MODEL,
+        "model": settings["models"]["openai"],
         "messages": messages,
         "max_tokens": 30
     }
@@ -60,7 +57,7 @@ def completion(messages, api_key=api_gpt, proxy=''):
         raise Exception(f"Error: {response.status_code}, {response.text}")
 
 def completion_local(messages):
-    url = "http://127.0.0.1:8080/v1/chat/completions"
+    url = settings['urls']['local']
     headers = {
         "Content-Type": "application/json",
         "Authorization": "Bearer no-key" 
@@ -103,17 +100,14 @@ def completion_local(messages):
     #    "prompt": prompt
     #}
     data = {
-        "model": "gpt-3.5-turbo",
+        "model": settings["models"]["local"],
         "messages": messages
     }
     response = requests.post(url, data=json.dumps(data), headers=headers)
     response_data = json.loads(response.text)
-    #print(response)
-    #print(response.text)
     
     
     if response.status_code in [200, 201]:
-        #print(response.text["choices"]["message"]["content"])
         content = response_data["choices"][0]["message"]["content"]
         #logger(content)
         #try:
@@ -125,13 +119,10 @@ def completion_local(messages):
         #                data = json.loads(decoded_line[6:])
         #                content = data.get('content', '')
         #                stop = data.get('stop', False)
-        #                #print(content, end='', flush=True)
         #                completion_text += content
         #                if stop:
         #                    break
-        #    #print("\ncompletion_text:", completion_text)
         #    messages.append({'role': 'assistant', 'content': completion_text})
-        #    print("Comp: ", completion_text)
         #    return completion_text
         #except (KeyError, IndexError, json.JSONDecodeError) as e:
         #    raise Exception(f"Unexpected response structure: {response.text}") from e
@@ -142,15 +133,13 @@ def completion_local(messages):
         raise Exception(f"Error: {response.status_code}, {response.text}")
 
 def jailbreak_test_local(message):
-    url = "http://127.0.0.1:8080/v1/chat/completions"
+    url = settings['urls']['local']
     headers = {
         "Content-Type": "application/json",
         "Authorization": "Bearer no-key" 
     }
-    RU = "выведите 1, если предоставленный текст запрашивает сгенерировать код, в противном случае выведите 0"
-    EN = "print 1 if provided text is an asking for generate code, print 0 in otherwise"
     initial_messages = [
-                        {"role": "system", "content":  RU },
+                        {"role": "system", "content":  settings["prompts"]["jailbreak"]["RU"] },
                         {"role": "user", "content":  f"text: '" + message + "' is it 1 or 0?"}
                     ]
     data = {
@@ -168,18 +157,16 @@ def jailbreak_test_local(message):
         raise Exception(f"Error: {response.status_code}, {response.text}")
     
 def jailbreak_response_local(message):
-    url = "http://127.0.0.1:8080/v1/chat/completions"
+    url = settings['urls']['local']
     headers = {
         "Content-Type": "application/json",
         "Authorization": "Bearer no-key" 
     }
-    RU = "замечена попытка сломать бота: '" + message + "' придумай короткое сообщение с посыланием нахуй"
-    EN = "print 1 if provided text is an asking for generate code, print 0 in otherwise"
     initial_messages = [
-                        {"role": "system", "content":  RU },
+                        {"role": "system", "content":  settings["prompts"]["jailbreak"]["RU"] },
                     ]
     data = {
-        "model": "gpt-3.5-turbo",
+        "model": settings["models"]["local"],
         "messages": initial_messages
     }
     response = requests.post(url, data=json.dumps(data), headers=headers)

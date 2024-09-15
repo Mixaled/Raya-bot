@@ -200,6 +200,8 @@ with TelegramClient(session_name, api_id, api_hash, device_model=settings["devic
                     #if event_happen:
                     #    await event_happen(client, event, resp, sender_username, stickers)
                     #await queue.add_message_to_queue(user_id, message_text)
+
+                    # thi fuck is going on here?
                     if False:
                         # ignore cooldown
                         if settings["ignore_with_cooldown"]:
